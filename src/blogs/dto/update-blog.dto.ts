@@ -6,7 +6,9 @@ import {
   IsOptional,
   MinLength,
   MaxLength,
+  IsEnum,
 } from 'class-validator';
+import { BlogStatus } from '@prisma/client';
 
 export class UpdateBlogDto {
   @IsOptional()
@@ -49,4 +51,8 @@ export class UpdateBlogDto {
   @IsOptional()
   @IsString({ message: 'Slug must be a string' })
   slug?: string;
+
+  @IsOptional()
+  @IsEnum(BlogStatus, { message: 'Status must be either PUBLISHED or UNPUBLISHED' })
+  status?: BlogStatus;
 }

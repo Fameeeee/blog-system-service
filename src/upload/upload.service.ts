@@ -1,11 +1,12 @@
 import { Injectable, InternalServerErrorException, BadRequestException, Inject } from '@nestjs/common';
-import { UploadApiResponse, UploadApiErrorResponse, v2 as cloudinary } from 'cloudinary';
+import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
+import type { v2 as CloudinaryV2 } from 'cloudinary';
 import * as streamifier from 'streamifier';
 import { Multer } from 'multer';
 
 @Injectable()
 export class UploadService {
-  constructor(@Inject('CLOUDINARY') private readonly cloudinary: typeof cloudinary) {}
+  constructor(@Inject('CLOUDINARY') private readonly cloudinary: typeof CloudinaryV2) {}
   /**
    * Upload an image file to Cloudinary using streamifier
    * @param file - The validated Express.Multer.File object

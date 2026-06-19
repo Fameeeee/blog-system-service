@@ -24,7 +24,7 @@ export class CommentsController {
   /**
    * Create a new comment (PUBLIC endpoint)
    * POST /comments/blog/:blogId
-   * Body: CreateCommentDto
+   * Body: CreateCommentDto (only senderName and content in body)
    * Status is always forced to PENDING at service level
    */
   @Post('blog/:blogId')
@@ -33,9 +33,8 @@ export class CommentsController {
     @Param('blogId') blogId: string,
     @Body() createCommentDto: CreateCommentDto,
   ) {
-    // Ensure blogId from URL is used
-    createCommentDto.blogId = blogId;
-    return this.commentsService.create(createCommentDto);
+    // Pass blogId separately from the URL parameter
+    return this.commentsService.create(blogId, createCommentDto);
   }
 
   /**

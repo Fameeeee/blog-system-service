@@ -15,9 +15,11 @@ export class CommentsService {
   /**
    * Create a new comment (public endpoint)
    * SECURITY: Always force status to PENDING regardless of user input
+   * @param blogId - Blog ID from URL parameter
+   * @param createCommentDto - Contains only senderName and content from request body
    */
-  async create(createCommentDto: CreateCommentDto) {
-    const { blogId, senderName, content } = createCommentDto;
+  async create(blogId: string, createCommentDto: CreateCommentDto) {
+    const { senderName, content } = createCommentDto;
 
     // Verify blog exists
     const blog = await this.prisma.blog.findUnique({

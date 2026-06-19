@@ -6,9 +6,6 @@ import {
 } from 'class-validator';
 
 export class CreateCommentDto {
-  // blogId is injected from URL parameter in controller, not from request body
-  blogId: string;
-
   @IsString()
   @IsNotEmpty({ message: 'Sender name is required' })
   @MaxLength(100, { message: 'Sender name must not exceed 100 characters' })

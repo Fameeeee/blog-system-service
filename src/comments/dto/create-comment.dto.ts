@@ -3,12 +3,10 @@ import {
   IsNotEmpty,
   MaxLength,
   Matches,
-  IsUUID,
 } from 'class-validator';
 
 export class CreateCommentDto {
-  @IsUUID('4', { message: 'blogId must be a valid UUID' })
-  @IsNotEmpty({ message: 'blogId is required' })
+  // blogId is injected from URL parameter in controller, not from request body
   blogId: string;
 
   @IsString()

@@ -1,0 +1,193 @@
+/**
+ * Manual Test Cases for BlogsService
+ * Run: npm run test
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { BlogsService } from './blogs.service';
+import { PrismaService } from '../common/prisma.service';
+import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+
+describe('BlogsService', () => {
+  let service: BlogsService;
+  let prismaService: PrismaService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        BlogsService,
+        {
+          provide: PrismaService,
+          useValue: {
+            $transaction: jest.fn(),
+            blog: {
+              create: jest.fn(),
+              findMany: jest.fn(),
+              findUnique: jest.fn(),
+              update: jest.fn(),
+              delete: jest.fn(),
+              count: jest.fn(),
+            },
+            blogImage: {
+              deleteMany: jest.fn(),
+              createMany: jest.fn(),
+            },
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<BlogsService>(BlogsService);
+    prismaService = module.get<PrismaService>(PrismaService);
+  });
+
+  describe('create', () => {
+    it('should create a blog with auto-generated slug', async () => {
+      const createBlogDto = {
+        title: 'My Test Blog',
+        excerpt: 'This is an excerpt',
+        content: 'This is some content that is long enough',
+        coverImageUrl: 'https://example.com/image.jpg',
+        additionalImages: ['https://example.com/img1.jpg'],
+      };
+
+      const mockBlog = {
+        id: 'uuid-1',
+        title: 'My Test Blog',
+        slug: 'my-test-blog',
+        excerpt: 'This is an excerpt',
+        content: 'This is some content that is long enough',
+        coverImageUrl: 'https://example.com/image.jpg',
+        status: 'UNPUBLISHED',
+        viewCount: 0,
+        publishedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        images: [{ id: 'img-1', blogId: 'uuid-1', imageUrl: 'https://example.com/img1.jpg', createdAt: new Date() }],
+      };
+
+      (prismaService.$transaction as jest.Mock).mockResolvedValueOnce(mockBlog);
+
+      const result = await service.create(createBlogDto);
+
+      expect(result.success).toBe(true);
+      expect(result.data.slug).toBe('my-test-blog');
+      expect(result.message).toBe('Blog created successfully');
+    });
+
+    it('should throw ConflictException when slug already exists', async () => {
+      const createBlogDto = {
+        title: 'Duplicate Blog',
+        excerpt: 'This is an excerpt',
+        content: 'This is some content that is long enough',
+        coverImageUrl: 'https://example.com/image.jpg',
+        slug: 'existing-slug',
+      };
+
+      (prismaService.$transaction as jest.Mock).mockRejectedValueOnce(
+        new ConflictException('Slug already exists')
+      );
+
+      await expect(service.create(createBlogDto)).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw BadRequestException when title is empty', async () => {
+      const createBlogDto = {
+        title: '',
+        excerpt: 'This is an excerpt',
+        content: 'This is some content that is long enough',
+        coverImageUrl: 'https://example.com/image.jpg',
+      };
+
+      await expect(service.create(createBlogDto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated blogs with meta', async () => {
+      const mockBlogs = [
+        {
+          id: 'uuid-1',
+          title: 'Blog 1',
+          slug: 'blog-1',
+          excerpt: 'Excerpt',
+          content: 'Content',
+          coverImageUrl: 'https://example.com/img.jpg',
+          status: 'PUBLISHED',
+          viewCount: 10,
+          publishedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          images: [],
+        },
+      ];
+
+      (prismaService.blog.findMany as jest.Mock).mockResolvedValueOnce(mockBlogs);
+      (prismaService.blog.count as jest.Mock).mockResolvedValueOnce(1);
+
+      const result = await service.findAll(1, 10);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(10);
+      expect(result.meta.total).toBe(1);
+    });
+
+    it('should throw BadRequestException for invalid page', async () => {
+      await expect(service.findAll(0, 10)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('findOneBySlug', () => {
+    it('should return blog by slug with images', async () => {
+      const mockBlog = {
+        id: 'uuid-1',
+        title: 'Test Blog',
+        slug: 'test-blog',
+        excerpt: 'Excerpt',
+        content: 'Content',
+        coverImageUrl: 'https://example.com/img.jpg',
+        status: 'PUBLISHED',
+        viewCount: 0,
+        publishedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        images: [],
+      };
+
+      (prismaService.blog.findUnique as jest.Mock).mockResolvedValueOnce(mockBlog);
+
+      const result = await service.findOneBySlug('test-blog');
+
+      expect(result.slug).toBe('test-blog');
+      expect(prismaService.blog.findUnique).toHaveBeenCalledWith({
+        where: { slug: 'test-blog' },
+        include: { images: true },
+      });
+    });
+
+    it('should throw NotFoundException when blog not found', async () => {
+      (prismaService.blog.findUnique as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(service.findOneBySlug('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete blog successfully', async () => {
+      (prismaService.blog.findUnique as jest.Mock).mockResolvedValueOnce({ id: 'uuid-1' });
+      (prismaService.blog.delete as jest.Mock).mockResolvedValueOnce({ id: 'uuid-1' });
+
+      const result = await service.remove('uuid-1');
+
+      expect(result.success).toBe(true);
+      expect(result.deletedBlogId).toBe('uuid-1');
+    });
+
+    it('should throw NotFoundException when blog not found', async () => {
+      (prismaService.blog.findUnique as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(service.remove('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+});

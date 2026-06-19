@@ -6,5 +6,5 @@ export class UpdateCommentStatusDto {
     message: 'Status must be either APPROVED or REJECTED',
   })
   @IsNotEmpty({ message: 'Status is required' })
-  status: CommentStatus.APPROVED | CommentStatus.REJECTED;
+  status: 'APPROVED' | 'REJECTED';
 }

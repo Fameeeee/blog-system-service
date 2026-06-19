@@ -3,11 +3,14 @@ import {
   UnauthorizedException,
   OnModuleInit,
   Logger,
+  ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../common/prisma.service';
 import { LoginDto } from './dto/login.dto';
+import { CreateAuthDto } from './dto/create-auth.dto';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -84,6 +87,59 @@ export class AuthService implements OnModuleInit {
 
     return {
       access_token: accessToken,
+    };
+  }
+
+  /**
+   * Register new user account
+   * Validates username uniqueness and creates user with hashed password
+   * Returns JWT token for immediate login after registration
+   */
+  async register(createAuthDto: CreateAuthDto): Promise<{ access_token: string; username: string }> {
+    const { username, password } = createAuthDto;
+
+    // Validate password strength
+    if (password.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters');
+    }
+
+    // Check if username already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Username already exists');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
+
+    // Create new user
+    const newUser = await this.prisma.user.create({
+      data: {
+        username,
+        password_hash: hashedPassword,
+      },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
+
+    // Generate JWT token for immediate login
+    const payload = {
+      sub: newUser.id,
+      username: newUser.username,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    this.logger.log(`New user registered: ${newUser.username}`);
+
+    return {
+      access_token: accessToken,
+      username: newUser.username,
     };
   }
 }

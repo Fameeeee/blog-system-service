@@ -9,10 +9,12 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { BlogsService } from './blogs.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('blogs')
 export class BlogsController {
@@ -22,8 +24,10 @@ export class BlogsController {
    * Create a new blog
    * POST /blogs
    * Body: CreateBlogDto
+   * Protected: Requires JWT authentication
    */
   @Post()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createBlogDto: CreateBlogDto) {
     return this.blogsService.create(createBlogDto);
@@ -63,8 +67,10 @@ export class BlogsController {
    * Update a blog by ID
    * PATCH /blogs/:id
    * Body: UpdateBlogDto (partial)
+   * Protected: Requires JWT authentication
    */
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() updateBlogDto: UpdateBlogDto) {
     return this.blogsService.update(id, updateBlogDto);
   }
@@ -73,8 +79,10 @@ export class BlogsController {
    * Delete a blog by ID
    * DELETE /blogs/:id
    * Returns 204 No Content on success
+   * Protected: Requires JWT authentication
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string) {
     return this.blogsService.remove(id);

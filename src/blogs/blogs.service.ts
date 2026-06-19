@@ -228,6 +228,7 @@ export class BlogsService {
         coverImageUrl,
         additionalImages,
         slug: newSlug,
+        status,
       } = updateBlogDto;
 
       // Prepare update data
@@ -237,6 +238,7 @@ export class BlogsService {
       if (excerpt !== undefined) updateData.excerpt = excerpt;
       if (content !== undefined) updateData.content = content;
       if (coverImageUrl !== undefined) updateData.coverImageUrl = coverImageUrl;
+      if (status !== undefined) updateData.status = status;
 
       // Handle slug uniqueness check if provided
       if (newSlug !== undefined) {

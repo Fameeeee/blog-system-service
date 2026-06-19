@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique @db.VarChar(50)
+  password_hash String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Blog {
+  id            String      @id @default(uuid())
+  title         String      @db.VarChar(255)
+  slug          String      @unique @db.VarChar(255)
+  excerpt       String      @db.Text
+  content       String      @db.Text
+  coverImageUrl String      @db.Text
+  status        BlogStatus  @default(UNPUBLISHED)
+  viewCount     Int         @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  images        BlogImage[]
+  comments      Comment[]
+
+  // ทำ Index สำหรับการค้นหาด้วย Slug
+  @@index([slug])
+}
+
+model BlogImage {
+  id        String   @id @default(uuid())
+  blogId    String
+  imageUrl  String   @db.Text
+  createdAt DateTime @default(now())
+
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@index([blogId])
+}
+
+model Comment {
+  id         String        @id @default(uuid())
+  blogId     String
+  senderName String        @db.VarChar(100)
+  content    String        @db.Text
+  status     CommentStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  blog       Blog          @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  // ทำ Index ตรงสถานะ เพื่อให้ Admin โหลดหน้า PENDING คอมเมนต์ได้ไวขึ้น
+  @@index([blogId, status])
+}
+
+enum BlogStatus {
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

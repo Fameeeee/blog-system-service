@@ -39,6 +39,30 @@ export class CommentsController {
   }
 
   /**
+   * Get comments for a specific blog with pagination and optional status filter
+   * GET /comments/blog/:blogId?status=APPROVED&limit=50
+   * Query Params:
+   *   - page: number (default: 1)
+   *   - limit: number (default: 10, max: 50)
+   *   - status: PENDING | APPROVED | REJECTED (optional)
+   * Public endpoint - no authentication required for viewing approved comments
+   */
+  @Get('blog/:blogId')
+  findByBlogId(
+    @Param('blogId') blogId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: CommentStatus,
+  ) {
+    const pageNum = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const limitNum = limit
+      ? Math.min(50, Math.max(1, parseInt(limit, 10)))
+      : 10;
+
+    return this.commentsService.findByBlogId(blogId, pageNum, limitNum, status);
+  }
+
+  /**
    * Get all comments with pagination and optional status filter (ADMIN only)
    * GET /comments?page=1&limit=10&status=PENDING
    * Query Params:

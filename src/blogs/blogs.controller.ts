@@ -87,4 +87,16 @@ export class BlogsController {
   remove(@Param('id') id: string) {
     return this.blogsService.remove(id);
   }
+
+  /**
+   * Record a view for a blog (increment viewCount)
+   * POST /blogs/:id/view
+   * Returns the updated blog with new viewCount
+   * Public endpoint - no authentication required
+   */
+  @Post(':id/view')
+  @HttpCode(HttpStatus.OK)
+  recordView(@Param('id') id: string) {
+    return this.blogsService.recordView(id);
+  }
 }

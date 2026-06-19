@@ -365,4 +365,53 @@ export class BlogsService {
       throw new BadRequestException('Failed to delete blog: ' + errorMessage);
     }
   }
+
+  /**
+   * Record a view for a blog by incrementing viewCount
+   * POST /blogs/:id/view
+   * Returns the updated blog with new viewCount
+   */
+  async recordView(id: string) {
+    if (!id || !id.trim()) {
+      throw new BadRequestException('Blog ID cannot be empty');
+    }
+
+    try {
+      // Check if blog exists
+      const blog = await this.prisma.blog.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      if (!blog) {
+        throw new NotFoundException(`Blog with ID "${id}" not found`);
+      }
+
+      // Increment viewCount
+      const updatedBlog = await this.prisma.blog.update({
+        where: { id },
+        data: {
+          viewCount: {
+            increment: 1,
+          },
+        },
+        include: {
+          images: true,
+        },
+      });
+
+      return {
+        success: true,
+        data: updatedBlog,
+        message: 'Blog view recorded successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new BadRequestException('Failed to record blog view: ' + errorMessage);
+    }
+  }
 }

@@ -139,4 +139,76 @@ export class CommentsService {
       comment: updatedComment,
     };
   }
+
+  /**
+   * Get comments for a specific blog with pagination and optional status filter
+   * GET /comments/blog/:blogId?status=APPROVED&limit=50
+   * Query Params:
+   *   - page: number (default: 1)
+   *   - limit: number (default: 10, max: 50)
+   *   - status: PENDING | APPROVED | REJECTED (optional)
+   */
+  async findByBlogId(
+    blogId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: CommentStatus,
+  ) {
+    if (!blogId || !blogId.trim()) {
+      throw new BadRequestException('Blog ID cannot be empty');
+    }
+
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Page and limit must be positive integers');
+    }
+
+    if (limit > 50) {
+      throw new BadRequestException('Limit must not exceed 50');
+    }
+
+    // Verify blog exists
+    const blog = await this.prisma.blog.findUnique({
+      where: { id: blogId },
+      select: { id: true },
+    });
+
+    if (!blog) {
+      throw new NotFoundException(`Blog with ID ${blogId} not found`);
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Build filter with blogId and optional status
+    const where = status ? { blogId, status } : { blogId };
+
+    // Get total count
+    const total = await this.prisma.comment.count({ where });
+
+    // Get paginated comments
+    const comments = await this.prisma.comment.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        blogId: true,
+        senderName: true,
+        content: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      data: comments,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }
